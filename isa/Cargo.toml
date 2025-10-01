@@ -1,0 +1,15 @@
+[package]
+name = "isa"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "RV32I instrcution set: bitfield packers and encode/decode helpers"
+
+[lib]
+name = "isa"
+path = "src/lib.rs"
+crate-type = ["rlib"]
+
+[features]
+std = []
+serde = ["dep:serde"] #rust standard framework for serialize and deserialize 

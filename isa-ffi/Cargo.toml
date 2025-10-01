@@ -1,2 +1,12 @@
+[package]
+name = "isa-ffi"
+edition = "2021"
+
+[lib]
+crate-type = ["staticlib", "cdylib"]   # static for linking, cdylib if you want a .so/.dll
+
+[dependencies]
+isa = { path = "../isa" }
+
 [build-dependencies]
 cbindgen = "0.27"
