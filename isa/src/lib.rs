@@ -1,7 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 #[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize}
+use serde::{Deserialize, Serialize};
 
 pub type Reg = u8; //unsigned 8 bit integer alia Reg
 
@@ -73,14 +73,14 @@ fn check_reg(r: Reg) -> Result<(), IsaError> { //declares a fn named check_reg, 
 }
 
 #[inline]
-fn check_imm_range(v: i32, bits:u8) -> Result<(), IsaError {
+fn check_imm_range(v: i32, bits:u8) -> Result<(), IsaError> {
     let min = -(1 << (bits - 1));
     let max = (1 << (bits -1)) - 1;
     if v >= min && v <= max { Ok(()) } else { Err(IsaError::ImmOutOfRange) }
 }
 
 #[inline]
-fn mask(width: u32) -> u32 { (1ue2 << width) - 1} // mask(2) turns (200) -> (011) can be used w &  to produce lsb 
+fn mask(width: u32) -> u32 { (1u32 << width) - 1} // mask(2) turns (200) -> (011) can be used w &  to produce lsb 
 
 #[inline]
 fn sign_extend_u32(v: u32, bits: u8) -> i32 {
@@ -109,7 +109,7 @@ fn pack_s(rs1: Reg, rs2: Reg, imm12: i32, funct3: u32, opcode: u32) -> u32 {
     let imm_11_5 = (imm >> 5) & 0x7f;
     let imm_4_0  = imm & 0x1f; 
     ((imm_11_5 << 25) | (((rs2 as u32) & 0x1f) << 20) | (((rs1 as u32) & 0x1f) << 15) 
-    | ((funct3 & 0x7) << 12) | (imm_4_0 << 7) | (opcode & 0x7f) as u32
+    | ((funct3 & 0x7) << 12) | (imm_4_0 << 7) | (opcode & 0x7f)) as u32
 }
 
 #[inline]
@@ -173,7 +173,159 @@ pub fn encode_beq( rs1: Reg, rs2: Reg, imm: i32 ) -> Result<u32, IsaError> {
     Ok(pack_b( rs1, rs2, imm, F3_BEQ, OP_BRANCH ))
 }
 
+pub fn encode_jal(rd: Reg, imm: i32) -> Result<u32, IsaError> {
+    check_reg(rd)?;
+    if (imm & 0x1) != 0 { return Err(IsaError::ImmOutOfRange); }
+    check_imm_range(imm, 21)?;
+    Ok(pack_j(rd, imm, OP_JAL))
+}
 
+pub fn encode_jalr( rd: Reg, rs1: Reg, imm: i32 ) -> Result<u32, IsaError> {
+    check_reg(rd)?; check_reg(rs1)?; check_imm_range(imm, 12)?;
+    Ok(pack_i( rd, rs1, imm, F3_JALR, OP_JALR ))
+}
 
+pub fn encode_lui( rd: Reg, imm: i32 ) -> Result<u32, IsaError> {
+    check_reg(rd)?; check_imm_range(imm, 20)?;
+    Ok(pack_u( rd, imm, OP_LUI ))
+}
 
+pub fn encode_auipc( rd: Reg, imm: i32 ) -> Result<u32, IsaError> {
+    check_reg(rd)?; check_imm_range(imm, 20)?;
+    Ok(pack_u(rd, imm, OP_AUIPC))
+}
 
+//-- field extractors --
+#[inline] pub fn rd(word: u32) -> Reg { ((word >> 7) & 0x1f) as Reg }
+#[inline] pub fn funct3(word: u32) -> u32 { (word >> 12) & 0x7 }
+#[inline] pub fn rs1(word: u32) -> Reg { ((word >> 15) & 0x1f) as Reg }
+#[inline] pub fn rs2(word: u32) -> Reg { ((word >> 20) & 0x1f) as Reg }
+#[inline] pub fn funct7(word: u32) -> u32 { (word >> 25) & 0x7f }
+#[inline] pub fn opcode(word: u32) -> u32 { word & 0x7f }
+
+#[inline]
+pub fn imm_i(word: u32) -> i32 { sign_extend_u32(word >> 20, 12) }
+
+#[inline]
+pub fn imm_s(word: u32) -> i32 {
+    let hi = (word >> 25) & 0x7f;
+    let lo = (word >> 7) & 0x1f;
+    let imm = (hi << 5) | lo;
+    sign_extend_u32(imm, 12)
+}
+
+#[inline]
+pub fn imm_b(word: u32) -> i32 {
+    // [31|30:25|11:8|7] -> [12|10:5|4:1|11] plus low zero bit
+    let b12   = ((word >> 31) & 0x1) << 12;
+    let b10_5 = ((word >> 25) & 0x3f) << 5;
+    let b4_1  = ((word >> 8)  & 0x0f) << 1;
+    let b11   = ((word >> 7)  & 0x1) << 11;
+    let imm = b12 | b11 | b10_5 | b4_1;
+    sign_extend_u32(imm, 13)
+}
+
+#[inline]
+pub fn imm_u(word: u32) -> i32 { (word & 0xfffff000) as i32 } // already aligned
+
+#[inline]
+pub fn imm_j(word: u32) -> i32 {
+    // [31|30:21|20|19:12] -> [20|10:1|11|19:12]
+    let b20   = ((word >> 31) & 0x1) << 20;
+    let b10_1 = ((word >> 21) & 0x3ff) << 1;
+    let b11   = ((word >> 20) & 0x1) << 11;
+    let b19_12= ((word >> 12) & 0xff) << 12;
+    let imm = b20 | b19_12 | b11 | b10_1;
+    sign_extend_u32(imm, 21)
+}
+
+// -- minimal decoder --
+pub fn decode( word: u32 ) -> Result<Instr, IsaError> {
+    match opcode(word) {
+        OP_OP => { 
+            match ( funct3(word), funct7(word) ) {
+                (F3_ADD_SUB, F7_ADD) => Ok(Instr::Add { rd: rd(word), rs1: rs1(word), rs2: rs2(word) }),
+                (F3_ADD_SUB, F7_SUB) => Ok(Instr::Sub { rd: rd(word), rs1: rs1(word), rs2: rs2(word) }),
+                _ => Err(IsaError::BadFunct),
+            }
+        }
+        
+        OP_OP_IMM => {
+            match funct3(word) {
+                F3_ADDI => Ok(Instr::Addi { rd: rd(word), rs1: rs1(word), imm: imm_i(word) }),
+                _ => Err(IsaError::BadFunct),
+            }
+        }
+        
+        OP_LOAD => {
+            match funct3(word) {
+                F3_LW => Ok(Instr::Lw { rd: rd(word), rs1: rs1(word), imm: imm_i(word) }),
+                _ => Err(IsaError::BadFunct),
+            }
+        }
+        
+        OP_STORE => {
+            match funct3(word) {
+                F3_SW => Ok(Instr::Sw { rs1: rs1(word), rs2: rs2(word), imm: imm_s(word) }),
+                _ => Err(IsaError::BadFunct),
+            }
+        }
+        
+        OP_BRANCH => {
+            match funct3(word) {
+                F3_BEQ => Ok(Instr::Beq { rs1: rs1(word), rs2: rs2(word), imm: imm_b(word) }),
+                _ => Err(IsaError::BadFunct),
+            }
+        }
+        
+        OP_JAL => Ok(Instr::Jal { rd: rd(word), imm: imm_j(word) }),
+        
+        OP_JALR => {
+            if funct3(word) == F3_JALR {
+                Ok(Instr::Jalr { rd: rd(word), rs1: rs1(word), imm: imm_i(word) })
+            } 
+            else { Err(IsaError::BadFunct) }
+        }
+        
+        OP_LUI => Ok(Instr::Lui { rd: rd(word), imm: imm_u(word) }),
+        
+        OP_AUIPC => Ok(Instr::Auipc { rd: rd(word), imm: imm_u(word) }),
+        
+        _ => Err(IsaError::BadOpcode),
+    }
+}
+
+// -- tests --
+#[cfg(feature = "std")]
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn add_round_trip() {
+        let w = encode_add(1,2,3).unwrap();
+        println!("Encoded Add instruction: {:#034b}", w);
+        assert_eq!(decode(w).unwrap(), Instr::Add { rd:1, rs1:2, rs2:3 });
+    }
+    
+    #[test]
+    fn addi_i_imm_limits() {
+        assert!(encode_addi(1,2, 2047).is_ok());
+        assert!(encode_addi(1, 2, -2048).is_ok());
+        assert!(encode_addi(1, 2, 2048).is_err());
+    }
+    
+    #[test]
+    fn beq_b_imm_even() {
+        // valid even offset
+        assert!(encode_beq(1,2,8).is_ok());
+        // odd (not multiple of 2) → error
+        assert!(encode_beq(1, 2, 3).is_err());
+    }
+
+    #[test]
+    fn jal_round_trip() {
+        let w = encode_jal(1, -4).unwrap();
+        assert_eq!(decode(w).unwrap(), Instr::Jal { rd:1, imm:-4 });
+    }
+}
