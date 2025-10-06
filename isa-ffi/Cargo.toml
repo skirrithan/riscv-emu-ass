@@ -8,7 +8,7 @@ build = "build.rs"
 
 [lib]
 name = "isa_ffi"
-crate-type = ["rlib", "staticlib", "cdylib"]   # static for linking, cdylib if you want a .so/.dll
+crate-type = ["staticlib", "cdylib"]   # static for linking, cdylib if you want a .so/.dll
 
 [features]
 default = ["std"]
