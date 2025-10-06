@@ -11,8 +11,8 @@ fn main() {
     println!("cargo:rerun-if-changed=src/lib.rs");
     println!("cargo:rerun-if-changed=cbindgen.toml");
 
-    // Output header path (in crate root)
-    let out_file = PathBuf::from(&crate_dir).join("isa.h");
+    // Output header path (in assembler-cpp/include/)
+    let out_file = PathBuf::from(&crate_dir).join("../assembler-cpp/include/isa.h");
 
     // Generate bindings
     let config = cbindgen::Config::from_file("cbindgen.toml").unwrap();

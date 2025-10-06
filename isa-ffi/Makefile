@@ -3,4 +3,4 @@ clean:
 
 build:
 	cargo clean
-	cargo build -p isa-ffi --releasex
+	cargo build -p isa-ffi --release
