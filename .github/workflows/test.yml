@@ -1,0 +1,43 @@
+name: RISC-V Assembler Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake build-essential
+
+    - name: Set up Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        profile: minimal
+
+    - name: Build Rust components
+      run: |
+        cd isa-ffi
+        cargo build --release
+
+    - name: Run tests
+      run: |
+        cd assembler-cpp
+        chmod +x tests/run_tests.sh
+        ./tests/run_tests.sh
+
+    - name: Upload test artifacts on failure
+      if: failure()
+      uses: actions/upload-artifact@v2
+      with:
+        name: test-outputs
+        path: assembler-cpp/build/test_output/
