@@ -220,11 +220,12 @@ uint32_t Encoder::encodeInstr(const AsmInstr& ins, uint32_t pc){
     if (imm < -(1<<12) || imm > ((1<<12)-2)) throw std::runtime_error("BEQ out of range");
     return btype(imm, rs2, rs1, 0x0, 0x63);
   }
-  if (M=="LUI"){
-    if (ins.args.size()!=2) throw std::runtime_error("LUI rd, imm20");
-    uint8_t rd=wantReg(arg(0)); int64_t v=parseInt(arg(1));
-    // Accept any 32-bit value and take upper 20 bits (documented behavior).
-    int32_t imm20 = (int32_t)((uint32_t)v >> 12);
+  if (M == "LUI") {
+    if (ins.args.size() != 2) throw std::runtime_error("LUI rd, imm20");
+    uint8_t rd = wantReg(arg(0));
+    int64_t v = parseInt(arg(1));
+    // Use lower 20 bits as immediate field directly.
+    int32_t imm20 = (int32_t)(v & 0xFFFFF);
     return utype(imm20, rd, 0x37);
   }
   if (M=="AUIPC"){

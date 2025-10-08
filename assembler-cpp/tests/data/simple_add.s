@@ -1,3 +1,3 @@
-LUI   x1, 0x12345
+LUI   x1, 0x12
 ADDI  x1, x1, 5
 ADD   x2, x1, x1
