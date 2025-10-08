@@ -6,19 +6,22 @@ static bool isIdentCont (char c){ return std::isalnum((unsigned char)c) || c=='_
 
 Lexer::Lexer(const std::string& s):src_(s){} //constructor for the class Lexer
 
-char Lexer::peek() const { return i_ < src_.size() ? src_[i_] : '\0'; }
-char Lexer::get() { char c = peek(); if(c=='\n'){ line_++; col_=1; } else col_++; if(i_ < src_.size()) i_++; return c; }
-bool Lexer::eof() const { return i_ >= src_.size(); }
+char Lexer::peek() const { return pos_ < src_.size() ? src_[pos_] : '\0'; }
+char Lexer::get() { char c = peek(); if(c=='\n'){ line_++; } if(pos_ < src_.size()) pos_++; return c; }
+bool Lexer::eof() const { return pos_ >= src_.size(); }
 
-void Lexer::run() {
+std::vector<Token> Lexer::tokenize() {
+  toks_.clear();
+  pos_ = 0;
+  line_ = 1;
   while(!eof()){
     // skip spaces and comments
     char c = peek();
     if (c==' '||c=='\t'||c=='\r'){ get(); continue; }
     if (c=='#'){ while(!eof() && peek()!='\n') get(); continue; }
-    if (c=='/' && i_+1<src_.size() && src_[i_+1]=='/') { while(!eof() && peek()!='\n') get(); continue; }
+    if (c=='/' && pos_+1<src_.size() && src_[pos_+1]=='/') { while(!eof() && peek()!='\n') get(); continue; }
 
-    unsigned l=line_, cc=col_;
+    unsigned l=line_;
     if (c=='\n'){ toks_.push_back({TokKind::Newline, "\n", 0, l}); get(); continue; }
     if (c==','){ toks_.push_back({TokKind::Comma, ",", 0, l}); get(); continue; }
     if (c==':'){ toks_.push_back({TokKind::Colon, ":", 0, l}); get(); continue; }
@@ -38,7 +41,7 @@ void Lexer::run() {
     }
 
     // register xN
-    if (c=='x' && i_+1<src_.size() && std::isdigit((unsigned char)src_[i_+1])) {
+    if (c=='x' && pos_+1<src_.size() && std::isdigit((unsigned char)src_[pos_+1])) {
       std::string s; s.push_back(get());
       while(std::isdigit((unsigned char)peek())) s.push_back(get());
       int64_t idx = std::stoll(s.substr(1));
@@ -58,4 +61,5 @@ void Lexer::run() {
     get();
   }
   toks_.push_back({TokKind::End, "", 0, line_});
+  return toks_;
 }

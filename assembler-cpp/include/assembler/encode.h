@@ -13,4 +13,5 @@ private:
     uint32_t encodeInstr(const AsmInstr& ins, uint32_t pc);
     Program& prog_;
     SymbolTable& sym_;
+    std::vector<uint32_t> pcs_;
 };

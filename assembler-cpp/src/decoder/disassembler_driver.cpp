@@ -6,6 +6,7 @@
 #include <vector>
 #include <cstdint>
 #include <iostream>
+#include <iomanip>
 
 static bool toWordLE(const std::vector<uint8_t>& buf, size_t i, uint32_t& out) {
     if (i + 4 > buf.size()) return false;

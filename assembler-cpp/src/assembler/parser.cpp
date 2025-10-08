@@ -1,12 +1,12 @@
 #include "assembler/parser.h"
 #include <stdexcept>
 
-Parser::Parser(const std::vector<Token>& t):t_(t){}
+Parser::Parser(const std::vector<Token>& t):toks_(t){}
 
 const Token& Parser::peek(int k) const {
   size_t j = i_ + (size_t)k;
-  if (j >= t_.size()) return t_.back();
-  return t_[j];
+  if (j >= toks_.size()) return toks_.back();
+  return toks_[j];
 }
 bool Parser::accept(TokKind k){ if(peek().kind==k){ i_++; return true; } return false; }
 bool Parser::expect(TokKind k, const char* msg){
@@ -61,4 +61,8 @@ Line Parser::parseLine(){
     }
   }
   return L;
+}
+
+const std::vector<std::string>& Parser::errors() const {
+    return errs_;
 }

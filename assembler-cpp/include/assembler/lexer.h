@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-enum class TokKind { Ident, Reg, Imm, Comma, Colon, Newline, End };
+enum class TokKind { Ident, Reg, Imm, Comma, Colon, Newline, End, LParen, RParen, Plus, Minus };
 
 struct Token {
     TokKind kind;
@@ -24,4 +24,5 @@ private:
     const std::string& src_;
     size_t pos_ = 0;
     unsigned line_ = 1;
+    std::vector<Token> toks_;
 };

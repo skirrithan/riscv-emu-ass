@@ -1,7 +1,7 @@
 #include "assembler/driver.h"
 #include "assembler/lexer.h"
 #include "assembler/parser.h"
-#include "assembler/encoder.h"
+#include "assembler/encode.h"
 #include "assembler/symbols.h"
 #include "common/utils.h"
 #include <iostream>
@@ -12,8 +12,8 @@ int assembleFile(const std::string& inPath, const std::string& outPath, bool hex
   auto src = readFileToString(inPath);
   if (src.empty()) { std::cerr << "Empty or unreadable input.\n"; return 1; }
 
-  Lexer lx(src); lx.run();
-  Parser ps(lx.tokens());
+  Lexer lx(src); lx.tokenize();
+  Parser ps(lx.tokenize());
   Program prog = ps.parse();
   if (!ps.errors().empty()){
     for (auto& e: ps.errors()) std::cerr << e << "\n";

@@ -1,4 +1,4 @@
-#include "assembler/encoder.h"
+#include "assembler/encode.h"
 #include "common/utils.h"
 #include <cstdint>
 #include <stdexcept>
@@ -114,9 +114,9 @@ std::vector<uint32_t> Encoder::assemble() {
   pcs_.reserve(prog_.instrs.size());
 
   // Sort labels by source line; we’ll consume them as we reach each instruction line.
-  std::vector<Label> labels = prog_.labels;
+  std::vector<LabelDef> labels = prog_.labels;
   std::sort(labels.begin(), labels.end(),
-            [](const Label& a, const Label& b){ return a.line < b.line; });
+            [](const LabelDef& a, const LabelDef& b){ return a.line < b.line; });
 
   uint32_t pc = 0;
   size_t li = 0; // label index
