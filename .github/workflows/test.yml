@@ -26,8 +26,8 @@ jobs:
 
     - name: Build Rust components
       run: |
-        cd isa-ffi
-        cargo build --release
+        # Build from workspace root
+        cargo build --release -p isa-ffi
 
     - name: Run tests
       run: |
