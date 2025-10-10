@@ -44,12 +44,24 @@ jobs:
         
         # Copy the static library
         echo "Copying FFI library..."
+        echo "Workspace root contents:"
+        ls -la /home/runner/work/riscv-emu-ass/riscv-emu-ass/
+        echo "Target release contents:"
         ls -la /home/runner/work/riscv-emu-ass/riscv-emu-ass/target/release/
-        cp /home/runner/work/riscv-emu-ass/riscv-emu-ass/target/release/libisa_ffi.* ../assembler-cpp/lib/
         
-        # Verify the library
-        echo "Verifying library..."
+        # Try to find the library file
+        echo "Looking for FFI library files:"
+        find /home/runner/work/riscv-emu-ass/riscv-emu-ass -name "libisa_ffi*"
+        
+        # Copy all variations of the library file
+        cp /home/runner/work/riscv-emu-ass/riscv-emu-ass/target/release/libisa_ffi* ../assembler-cpp/lib/ || true
+        
+        # Check what was copied
+        echo "Copied library contents:"
         ls -la ../assembler-cpp/lib/
+        
+        # Set permissions
+        chmod 644 ../assembler-cpp/lib/* || true
 
     - name: Build and test C++ components
       run: |
