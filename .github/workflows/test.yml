@@ -22,21 +22,38 @@ jobs:
       uses: actions-rs/toolchain@v1
       with:
         toolchain: stable
+        override: true
         profile: minimal
+        components: rustfmt, clippy
 
-    - name: Build Rust FFI library
+    - name: Create library directory
+      run: mkdir -p assembler-cpp/lib
+
+    - name: Build Rust components
       run: |
-        cd isa-ffi
-        cargo build --release
-        mkdir -p target/release/
-        cp target/release/libisa_ffi.a ../assembler-cpp/lib/
+        # First build the core isa library
+        echo "Building core isa library..."
+        cd isa
+        cargo build --release --verbose
         cd ..
+        
+        # Then build the FFI library
+        echo "Building FFI library..."
+        cd isa-ffi
+        cargo build --release --verbose
+        
+        # Copy the static library
+        echo "Copying FFI library..."
+        cp target/release/libisa_ffi.a ../assembler-cpp/lib/
+        
+        # Verify the library
+        echo "Verifying library..."
+        ls -la ../assembler-cpp/lib/
+        file ../assembler-cpp/lib/libisa_ffi.a
 
     - name: Build and test C++ components
       run: |
         cd assembler-cpp
-        # Create lib directory for FFI library
-        mkdir -p lib
         # Build in build directory
         mkdir -p build
         cd build
