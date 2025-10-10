@@ -54,7 +54,7 @@ jobs:
         find /home/runner/work/riscv-emu-ass/riscv-emu-ass -name "libisa_ffi*"
         
         # Copy all variations of the library file
-        cp /home/runner/work/riscv-emu-ass/riscv-emu-ass/target/release/libisa_ffi* ../assembler-cpp/lib/ || true
+        cp /home/runner/work/riscv-emu-ass/riscv-emu-ass/target/release/libisa_ffi* /home/runner/work/riscv-emu-ass/riscv-emu-ass/assembler-cpp/lib/ || true
         
         # Check what was copied
         echo "Copied library contents:"
@@ -69,7 +69,9 @@ jobs:
         # Build in build directory
         mkdir -p build
         cd build
-        cmake .. -DRUST_FFI_PATH=${GITHUB_WORKSPACE}/assembler-cpp/lib
+        echo "Build directory contents before cmake:"
+        ls -la ../lib/
+        cmake .. -DRUST_FFI_PATH=/home/runner/work/riscv-emu-ass/riscv-emu-ass/assembler-cpp/lib
         make VERBOSE=1 -j$(nproc)
         cd ..
         chmod +x tests/run_tests.sh
