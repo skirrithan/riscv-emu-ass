@@ -28,14 +28,20 @@ jobs:
       run: |
         cd isa-ffi
         cargo build --release
+        mkdir -p target/release/
+        cp target/release/libisa_ffi.a ../assembler-cpp/lib/
+        cd ..
 
     - name: Build and test C++ components
       run: |
         cd assembler-cpp
+        # Create lib directory for FFI library
+        mkdir -p lib
+        # Build in build directory
         mkdir -p build
         cd build
-        cmake ..
-        make -j$(nproc)
+        cmake .. -DRUST_FFI_PATH=${GITHUB_WORKSPACE}/assembler-cpp/lib
+        make VERBOSE=1 -j$(nproc)
         cd ..
         chmod +x tests/run_tests.sh
         ./tests/run_tests.sh

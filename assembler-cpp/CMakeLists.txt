@@ -22,19 +22,27 @@ file(GLOB_RECURSE COMMON_SRC_FILES
 # Main executable
 add_executable(assembler ${COMMON_SRC_FILES} "${CMAKE_SOURCE_DIR}/src/assembler/main.cpp")
 
+if(DEFINED ENV{RUST_FFI_PATH})
+    set(RUST_FFI_PATH $ENV{RUST_FFI_PATH})
+else()
+    set(RUST_FFI_PATH ${CMAKE_SOURCE_DIR}/../isa-ffi/target/release)
+endif()
+
+message(STATUS "Using Rust FFI library from: ${RUST_FFI_PATH}")
+
 # Link your Rust FFI library if needed
 target_link_libraries(assembler PRIVATE
-    ${CMAKE_SOURCE_DIR}/../isa-ffi/target/release/libisa_ffi.a
+    ${RUST_FFI_PATH}/libisa_ffi.a
 )
 
 # Test executables (use common source files only)
 add_executable(test_assemble tests/test_assemble.cpp ${COMMON_SRC_FILES})
 target_link_libraries(test_assemble PRIVATE
-    ${CMAKE_SOURCE_DIR}/../isa-ffi/target/release/libisa_ffi.a
+    ${RUST_FFI_PATH}/libisa_ffi.a
 )
 
 add_executable(test_disassemble tests/test_dissasemble.cpp ${COMMON_SRC_FILES})
 target_link_libraries(test_disassemble PRIVATE
-    ${CMAKE_SOURCE_DIR}/../isa-ffi/target/release/libisa_ffi.a
+    ${RUST_FFI_PATH}/libisa_ffi.a
 )
     
