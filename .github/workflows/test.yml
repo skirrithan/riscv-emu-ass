@@ -44,12 +44,12 @@ jobs:
         
         # Copy the static library
         echo "Copying FFI library..."
-        cp target/release/libisa_ffi.a ../assembler-cpp/lib/
+        ls -la ./target/release/
+        cp ./target/release/libisa_ffi.* ../assembler-cpp/lib/
         
         # Verify the library
         echo "Verifying library..."
         ls -la ../assembler-cpp/lib/
-        file ../assembler-cpp/lib/libisa_ffi.a
 
     - name: Build and test C++ components
       run: |
