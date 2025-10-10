@@ -53,25 +53,27 @@ jobs:
         echo "Looking for FFI library files:"
         find /home/runner/work/riscv-emu-ass/riscv-emu-ass -name "libisa_ffi*"
         
-        # Copy all variations of the library file
-        cp /home/runner/work/riscv-emu-ass/riscv-emu-ass/target/release/libisa_ffi* /home/runner/work/riscv-emu-ass/riscv-emu-ass/assembler-cpp/lib/ || true
+        # Verify the target/release directory contents
+        echo "Target release directory contents:"
+        ls -la /home/runner/work/riscv-emu-ass/riscv-emu-ass/target/release/
         
-        # Check what was copied
-        echo "Copied library contents:"
-        ls -la ../assembler-cpp/lib/
-        
-        # Set permissions
-        chmod 644 ../assembler-cpp/lib/* || true
+        # Make sure we have the static library
+        if [ ! -f /home/runner/work/riscv-emu-ass/riscv-emu-ass/target/release/libisa_ffi.a ]; then
+            echo "ERROR: Static library libisa_ffi.a not found!"
+            exit 1
+        fi
 
     - name: Build and test C++ components
       run: |
         cd assembler-cpp
+        # Ensure we have the static library
+        echo "Verifying static library exists:"
+        ls -la /home/runner/work/riscv-emu-ass/riscv-emu-ass/target/release/libisa_ffi.a
+        
         # Build in build directory
         mkdir -p build
         cd build
-        echo "Build directory contents before cmake:"
-        ls -la ../lib/
-        cmake .. -DRUST_FFI_PATH=/home/runner/work/riscv-emu-ass/riscv-emu-ass/assembler-cpp/lib
+        cmake .. -DRUST_FFI_PATH=/home/runner/work/riscv-emu-ass/riscv-emu-ass/target/release
         make VERBOSE=1 -j$(nproc)
         cd ..
         chmod +x tests/run_tests.sh

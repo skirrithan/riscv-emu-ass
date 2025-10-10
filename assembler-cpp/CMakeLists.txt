@@ -22,27 +22,49 @@ file(GLOB_RECURSE COMMON_SRC_FILES
 # Main executable
 add_executable(assembler ${COMMON_SRC_FILES} "${CMAKE_SOURCE_DIR}/src/assembler/main.cpp")
 
-if(DEFINED ENV{RUST_FFI_PATH})
-    set(RUST_FFI_PATH $ENV{RUST_FFI_PATH})
+if(DEFINED RUST_FFI_PATH)
+    # Use the path provided via -DRUST_FFI_PATH
+    set(RUST_FFI_DIR ${RUST_FFI_PATH})
+elseif(DEFINED ENV{RUST_FFI_PATH})
+    # Use the path from environment variable
+    set(RUST_FFI_DIR $ENV{RUST_FFI_PATH})
 else()
-    set(RUST_FFI_PATH ${CMAKE_SOURCE_DIR}/../isa-ffi/target/release)
+    # Default path
+    set(RUST_FFI_DIR ${CMAKE_SOURCE_DIR}/../isa-ffi/target/release)
 endif()
 
-message(STATUS "Using Rust FFI library from: ${RUST_FFI_PATH}")
+message(STATUS "Looking for Rust FFI library in: ${RUST_FFI_DIR}")
 
-# Link your Rust FFI library if needed
+# Find the Rust FFI library
+set(RUST_FFI_LIB "${RUST_FFI_DIR}/libisa_ffi.a")
+if(NOT RUST_FFI_LIB)
+    message(FATAL_ERROR "Could not find Rust FFI library in ${RUST_FFI_PATH}")
+endif()
+message(STATUS "Found Rust FFI library: ${RUST_FFI_LIB}")
+
+# Add system libraries that might be needed
+find_library(DL_LIBRARY dl)
+find_package(Threads)
+
+# Link your Rust FFI library and system dependencies
 target_link_libraries(assembler PRIVATE
-    ${RUST_FFI_PATH}/libisa_ffi.a
+    ${RUST_FFI_LIB}
+    ${DL_LIBRARY}
+    ${CMAKE_THREAD_LIBS_INIT}
 )
 
 # Test executables (use common source files only)
 add_executable(test_assemble tests/test_assemble.cpp ${COMMON_SRC_FILES})
 target_link_libraries(test_assemble PRIVATE
-    ${RUST_FFI_PATH}/libisa_ffi.a
+    ${RUST_FFI_LIB}
+    ${DL_LIBRARY}
+    ${CMAKE_THREAD_LIBS_INIT}
 )
 
 add_executable(test_disassemble tests/test_dissasemble.cpp ${COMMON_SRC_FILES})
 target_link_libraries(test_disassemble PRIVATE
-    ${RUST_FFI_PATH}/libisa_ffi.a
+    ${RUST_FFI_LIB}
+    ${DL_LIBRARY}
+    ${CMAKE_THREAD_LIBS_INIT}
 )
     
