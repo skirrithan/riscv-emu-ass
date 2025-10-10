@@ -44,8 +44,8 @@ jobs:
         
         # Copy the static library
         echo "Copying FFI library..."
-        ls -la ./target/release/
-        cp ./target/release/libisa_ffi.* ../assembler-cpp/lib/
+        ls -la /home/runner/work/riscv-emu-ass/riscv-emu-ass/target/release/
+        cp /home/runner/work/riscv-emu-ass/riscv-emu-ass/target/release/libisa_ffi.* ../assembler-cpp/lib/
         
         # Verify the library
         echo "Verifying library..."
