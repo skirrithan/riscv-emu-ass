@@ -24,14 +24,19 @@ jobs:
         toolchain: stable
         profile: minimal
 
-    - name: Build Rust components
+    - name: Build Rust FFI library
       run: |
-        # Build from workspace root
-        cargo build --release -p isa-ffi
+        cd isa-ffi
+        cargo build --release
 
-    - name: Run tests
+    - name: Build and test C++ components
       run: |
         cd assembler-cpp
+        mkdir -p build
+        cd build
+        cmake ..
+        make -j$(nproc)
+        cd ..
         chmod +x tests/run_tests.sh
         ./tests/run_tests.sh
 
