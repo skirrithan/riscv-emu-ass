@@ -1,6 +1,4 @@
 # tests/data/comprehensive_min.s
-# Round-trip coverage for: ADD, SUB, ADDI, LW, SW, BEQ, LUI, AUIPC, JAL, JALR
-# No assembler directives (.section/.globl/.balign) so your parser won't complain.
 
 _start:
     # R-type
