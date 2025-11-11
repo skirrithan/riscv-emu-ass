@@ -221,6 +221,28 @@ void runAssemblyTest(const std::string& asmPath, const std::string& binPath, Tes
         }
         return false;
     };
+    // Detect if this file contains any label-using instructions
+    bool fileHasLabel = false;
+    for (const auto &ln : asmLines) if (lineHasLabelOperand(ln)) { fileHasLabel = true; break; }
+
+    // If fileHasLabel: assemble whole file once and compare per-instruction
+    std::vector<uint32_t> fullReassembledWords;
+    std::string tempFullBin = tempFile + ".full.bin";
+    if (fileHasLabel) {
+        int rc_full = assembleFile(asmPath, tempFullBin, false);
+        if (rc_full != 0) {
+            std::cerr << "FAIL: Full-file assembly failed for " << asmPath << " (cannot verify label-based instructions)\n";
+            // continue but no full reassembly comparisons will be possible
+        } else {
+            std::ifstream fullBinF(tempFullBin, std::ios::binary);
+            uint32_t w;
+            while (fullBinF.read(reinterpret_cast<char*>(&w), sizeof(w))) fullReassembledWords.push_back(w);
+            fullBinF.close();
+            if (fullReassembledWords.size() != binWords.size()) {
+                std::cerr << "WARN: Full-file reassembled count (" << fullReassembledWords.size() << ") differs from original binary count (" << binWords.size() << ") for " << asmPath << "\n";
+            }
+        }
+    }
 
     for (size_t i = 0; i < compareCount; i++) {
         coverage.total_tests++;
@@ -239,41 +261,58 @@ void runAssemblyTest(const std::string& asmPath, const std::string& binPath, Tes
             continue;
         }
         
-        // Re-assemble the original instruction, unless it references a label
-        if (lineHasLabelOperand(asmLines[i])) {
-            std::cout << "SKIP re-assembly (contains label): " << asmLines[i] << "\n";
-        } else {
-            std::ofstream tempAsm(tempFile);
-            tempAsm << asmLines[i] << "\n";
-            tempAsm.close();
-
-            std::string tempBin = tempFile + ".bin";
-            int rc = assembleFile(tempFile, tempBin, false);
-
-            if (rc != 0) {
-                std::cerr << "FAIL: Re-assembly failed for: " << asmLines[i] << "\n";
+        // If we assembled the full file, compare the full reassembled word for this index
+        if (!fullReassembledWords.empty()) {
+            if (i < fullReassembledWords.size()) {
+                uint32_t reassembled = fullReassembledWords[i];
+                if (reassembled != binWords[i]) {
+                    std::cerr << "FAIL: Full-file re-encoding mismatch in " << asmPath << " line " << (i+1) << "\n";
+                    std::cerr << "  Original: 0x" << std::hex << binWords[i] << std::dec << "\n";
+                    std::cerr << "  Re-encoded: 0x" << std::hex << reassembled << std::dec << "\n";
+                    testPassed = false;
+                    // continue to next instruction
+                }
+            } else {
+                std::cerr << "FAIL: Full-file reassembly missing instruction for " << asmPath << " line " << (i+1) << "\n";
                 testPassed = false;
-                // cleanup temp files
-                std::remove(tempFile.c_str());
-                std::remove((tempFile + ".bin").c_str());
-                continue;
             }
-            
-            // Read the reassembled binary
-            std::ifstream tempBinFile(tempBin, std::ios::binary);
-            uint32_t reassembled;
-            tempBinFile.read(reinterpret_cast<char*>(&reassembled), sizeof(reassembled));
-            tempBinFile.close();
+        } else {
+            // No full-file reassembly available: fall back to per-line re-assembly unless line has label
+            if (lineHasLabelOperand(asmLines[i])) {
+                std::cout << "SKIP re-assembly (contains label): " << asmLines[i] << "\n";
+            } else {
+                std::ofstream tempAsm(tempFile);
+                tempAsm << asmLines[i] << "\n";
+                tempAsm.close();
 
-            if (reassembled != binWords[i]) {
-                std::cerr << "FAIL: Re-encoding mismatch in " << asmPath << " line " << (i+1) << "\n";
-                std::cerr << "  Original: 0x" << std::hex << binWords[i] << std::dec << "\n";
-                std::cerr << "  Re-encoded: 0x" << std::hex << reassembled << std::dec << "\n";
-                testPassed = false;
-                // cleanup temp files
-                std::remove(tempFile.c_str());
-                std::remove((tempFile + ".bin").c_str());
-                continue;
+                std::string tempBin = tempFile + ".bin";
+                int rc = assembleFile(tempFile, tempBin, false);
+
+                if (rc != 0) {
+                    std::cerr << "FAIL: Re-assembly failed for: " << asmLines[i] << "\n";
+                    testPassed = false;
+                    // cleanup temp files
+                    std::remove(tempFile.c_str());
+                    std::remove((tempFile + ".bin").c_str());
+                    continue;
+                }
+                
+                // Read the reassembled binary
+                std::ifstream tempBinFile(tempBin, std::ios::binary);
+                uint32_t reassembled;
+                tempBinFile.read(reinterpret_cast<char*>(&reassembled), sizeof(reassembled));
+                tempBinFile.close();
+
+                if (reassembled != binWords[i]) {
+                    std::cerr << "FAIL: Re-encoding mismatch in " << asmPath << " line " << (i+1) << "\n";
+                    std::cerr << "  Original: 0x" << std::hex << binWords[i] << std::dec << "\n";
+                    std::cerr << "  Re-encoded: 0x" << std::hex << reassembled << std::dec << "\n";
+                    testPassed = false;
+                    // cleanup temp files
+                    std::remove(tempFile.c_str());
+                    std::remove((tempFile + ".bin").c_str());
+                    continue;
+                }
             }
         }
         
