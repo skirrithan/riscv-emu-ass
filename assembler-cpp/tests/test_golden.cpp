@@ -370,6 +370,17 @@ int main() {
             std::string binPath = entry.path().parent_path().string() + "/" + 
                                 entry.path().stem().string() + ".bin";
             
+            // If binPath doesn't exist, try to assemble the full .s file to create it
+            if (!fs::exists(binPath)) {
+                std::cout << "Binary companion not found for " << entry.path().filename().string() << ", attempting to assemble full file...\n";
+                int rc = assembleFile(asmPath, binPath, false);
+                if (rc != 0) {
+                    std::cerr << "Failed to assemble full file for testing: " << asmPath << " (rc=" << rc << ")\n";
+                    continue;
+                }
+                std::cout << "Produced binary: " << binPath << "\n";
+            }
+
             if (fs::exists(binPath)) {
                 std::cout << "\nTesting file: " << entry.path().filename().string() << "\n";
                 runAssemblyTest(asmPath, binPath, coverage);
