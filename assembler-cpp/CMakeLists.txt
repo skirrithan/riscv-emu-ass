@@ -46,10 +46,22 @@ message(STATUS "Found Rust FFI library: ${RUST_FFI_LIB}")
 find_library(DL_LIBRARY dl)
 find_package(Threads)
 
+# Add test_golden executable
+add_executable(test_golden
+    tests/test_golden.cpp
+    ${COMMON_SRC_FILES}
+)
+
 # Link your Rust FFI library and system dependencies
 target_link_libraries(assembler PRIVATE
     ${RUST_FFI_LIB}
-    ${DL_LIBRARY}
+    ${CMAKE_DL_LIBS}
+    ${CMAKE_THREAD_LIBS_INIT}
+)
+
+target_link_libraries(test_golden PRIVATE
+    ${RUST_FFI_LIB}
+    ${CMAKE_DL_LIBS}
     ${CMAKE_THREAD_LIBS_INIT}
 )
 
@@ -67,4 +79,3 @@ target_link_libraries(test_disassemble PRIVATE
     ${DL_LIBRARY}
     ${CMAKE_THREAD_LIBS_INIT}
 )
-    
