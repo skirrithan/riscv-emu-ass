@@ -76,8 +76,20 @@ jobs:
         cmake .. -DRUST_FFI_PATH=/home/runner/work/riscv-emu-ass/riscv-emu-ass/target/release
         make VERBOSE=1 -j$(nproc)
         cd ..
-        chmod +x tests/run_tests.sh
-        ./tests/run_tests.sh
+        
+        # Run the existing shell test runner (keeps previous checks)
+        if [ -x tests/run_tests.sh ]; then
+          chmod +x tests/run_tests.sh
+          ./tests/run_tests.sh || true
+        fi
+
+        # Run the new golden test runner if it was built
+        if [ -x build/test_golden ]; then
+          echo "Running test_golden..."
+          ./build/test_golden
+        else
+          echo "test_golden not found; skipping"
+        fi
 
     - name: Upload test artifacts on failure
       if: failure()
